@@ -8,6 +8,6 @@ Add SimpleBrotli to your uses, then:
 
 also available:
 ```
-  BrotliDecompressStreams(InStr, OutStr: TStream): Integer;
+  function BrotliDecompressStreams(InStr, OutStr: TStream): Integer;
   function UnBrotli(const Compressed: AnsiString): AnsiString;
 ```
