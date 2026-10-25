@@ -164,7 +164,7 @@ CommandBegin:
     goto saveStateAndReturn;
   end;
   if s^.block_length[1] = 0 then begin
-    err := DecodeCommandBlockSwitch(s);
+    err := DecodeCommandBlockSwitchInternal(safe, s);
     if err <> BROTLI_DECODER_SUCCESS then goto saveStateAndReturn;
     goto CommandBegin;
   end;
@@ -273,7 +273,7 @@ CommandPostDecodeLiterals:
     s^.distance_code := s^.dist_rb[s^.dist_rb_idx and 3];
   end else begin
     if s^.block_length[2] = 0 then begin
-      err := DecodeDistanceBlockSwitch(s);
+      err := DecodeDistanceBlockSwitchInternal(safe, s);
       if err <> BROTLI_DECODER_SUCCESS then goto saveStateAndReturn;
     end;
     if safe = 0 then ReadDistance(s, br)
@@ -382,7 +382,7 @@ CommandPostWrapCopy:
   end else goto CommandBegin;
 
 NextLiteralBlock:
-  err := DecodeLiteralBlockSwitch(s);
+  err := DecodeLiteralBlockSwitchInternal(safe, s);
   if err <> BROTLI_DECODER_SUCCESS then goto saveStateAndReturn;
   goto CommandInner;
 
@@ -471,6 +471,9 @@ begin
             BrotliBitReaderSetInput(br, next_in^, available_in^);
             Continue;
           end else if available_in^ <> 0 then begin
+            if s^.buffer_length >= SizeOf(s^.buffer_u64) then begin
+              err := BROTLI_FAILURE(BROTLI_DECODER_ERROR_FORMAT_PADDING_1); Break;
+            end;
             err := BROTLI_DECODER_SUCCESS;
             PByte(@s^.buffer_u64)[s^.buffer_length] := next_in^^;
             Inc(s^.buffer_length);
@@ -484,6 +487,9 @@ begin
           next_in^ := br^.next_in;
           available_in^ := BrotliBitReaderGetAvailIn(br);
           while available_in^ <> 0 do begin
+            if s^.buffer_length >= SizeOf(s^.buffer_u64) then begin
+              err := BROTLI_FAILURE(BROTLI_DECODER_ERROR_FORMAT_PADDING_1); Break;
+            end;
             PByte(@s^.buffer_u64)[s^.buffer_length] := next_in^^;
             Inc(s^.buffer_length);
             Inc(next_in^);
